@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+*.log
+
+# Where `npm run verify` builds and runs the generated DDL.
+.verify/

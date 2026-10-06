@@ -1,0 +1,96 @@
+// A model for `npm run verify`: every data shape this provider claims to hold, in a form a real
+// SQL Server can be pointed at. Deliberately awkward — a field named after a keyword, a nested
+// record, a list of records, a list of scalars, a map, an enum, a value chain, and an invariant that
+// stays inside the row next to one that does not.
+
+package shop
+
+envelopes Trace, Caller
+
+enum Channel {
+  Web
+  Kiosk
+  Partner
+}
+
+value Line      : string { length 1..255 }
+value Line60    : Line   { length 1..60 }
+value Sku       : string { length 1..24; normalize upper }
+value Money     : decimal(18,2) { range 0.. }
+value Currency  : string { length 3 }
+value Postcode  : string { length 4..10; pattern /^[0-9 ]{4,10}$/ }
+value Qty       : int    { range 1..99 }
+value Blob      : bytes  { length 1..64 }
+
+record Amount {
+  value:    Money
+  currency: Currency
+}
+
+record Address {
+  street:   Line60
+  postcode: Postcode
+  country:  Line60?
+}
+
+record OrderLine {
+  sku:  Sku
+  qty:  Qty
+  unit: Amount
+}
+
+envelope Trace {
+  correlationId: uuid @role(correlation)
+  priority:      int  { range 0..9 }
+}
+
+envelope Caller {
+  tenantId: Line60 @role(partitionKey)
+}
+
+message PlaceOrder v1.0 @command {
+  orderId:  uuid @role(businessKey)
+  lines:    [OrderLine] { size 1..50 }
+  total:    Amount
+  shipTo:   Address
+  billTo:   Address?
+  channel:  Channel
+  tags:     [Line60] { size 0..10; unique }
+  rates:    map<Currency, Money>
+  note:     string? { length 1..200 }
+  stamped:  instant
+  held:     duration
+  token:    Blob
+  // `order` is a reserved word in T-SQL, which is why every identifier is bracketed.
+  order:    int { range 1..1000 }
+  settleIn: Currency
+
+  // Inside one row and over two required fields, so this becomes a real constraint.
+  invariant total.currency == settleIn
+  // Over two optional fields. 7K says a comparison needs both sides, so an absent one makes it
+  // false — which SQL would call unknown and let through unless the check says otherwise.
+  invariant shipTo.country == billTo.country
+  // Across a child table, so it cannot.
+  invariant total.currency == lines[].unit.currency
+}
+
+message OrderAccepted v1.1 @event {
+  orderId: uuid @role(businessKey)
+  // Optional and added in v1.1, which is the only way a minor may grow a field.
+  reason:  Line60? @since(1.1)
+}
+
+message OrderSettled v2.0 @event {
+  orderId: uuid @role(businessKey)
+  // Required and added in a major, which is legal — and a table holding v1.x rows as well cannot
+  // require it, because they were written before it existed.
+  ledgerId: uuid @since(2.0)
+}
+
+pipe inbound : queue { delivery at-least-once }
+
+service Desk {
+  emits OrderAccepted to inbound
+
+  reacts PlaceOrder from inbound { replies OrderAccepted }
+}

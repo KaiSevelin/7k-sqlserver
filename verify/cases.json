@@ -1,0 +1,89 @@
+{
+  "note": [
+    "Each case is a valid row with one thing changed, and whether the database should take it.",
+    "Built from a base row rather than written out, because a hand-written case that happens to break",
+    "a second rule passes for the wrong reason — which is exactly what the first version of this file",
+    "did: every rejection was really the invariant over two absent fields, and the rule under test was",
+    "never reached."
+  ],
+  "table": "[Shop].[PlaceOrder]",
+  "base": {
+    "MessageId": "'11111111-1111-1111-1111-111111111111'",
+    "SentAt": "'2026-10-05T12:00:00'",
+    "MessageVersion": "N'1.0'",
+    "CorrelationId": "'22222222-2222-2222-2222-222222222222'",
+    "Priority": "3",
+    "TenantId": "N'acme'",
+    "OrderId": "'33333333-3333-3333-3333-333333333333'",
+    "TotalValue": "12.50",
+    "TotalCurrency": "N'SEK'",
+    "ShipToStreet": "N'Storgatan 1'",
+    "ShipToPostcode": "N'11122'",
+    "ShipToCountry": "N'SE'",
+    "BillToStreet": "N'Storgatan 1'",
+    "BillToPostcode": "N'11122'",
+    "BillToCountry": "N'SE'",
+    "Channel": "N'Web'",
+    "Note": "N'a note'",
+    "Stamped": "'2026-10-05T12:00:00'",
+    "Held": "30000",
+    "Token": "0x0102",
+    "Order": "7",
+    "SettleIn": "N'SEK'"
+  },
+  "cases": [
+    { "accept": true, "what": "a message that satisfies every rule" },
+
+    { "accept": false, "what": "a `range` below its floor", "set": { "TotalValue": "-1.00" } },
+    { "accept": false, "what": "a `range` above its ceiling, on an envelope field", "set": { "Priority": "99" } },
+    { "accept": false, "what": "a `range` on a value, not on the field", "set": { "Order": "0" } },
+
+    { "accept": false, "what": "a `length` shorter than the model allows", "set": { "ShipToPostcode": "N'123'" } },
+    { "accept": false, "what": "an exact `length` that is not exact", "set": { "TotalCurrency": "N'SEKK'", "SettleIn": "N'SEKK'" } },
+    { "accept": false, "what": "a `length` on an optional field that is present and wrong", "set": { "Note": "N''" } },
+    { "accept": true, "what": "an optional field left absent", "drop": ["Note"] },
+
+    { "accept": false, "what": "`bytes` longer than the declared length",
+      "set": { "Token": "CONVERT(VARBINARY(100), REPLICATE(CAST(0x01 AS VARCHAR(MAX)), 80))" } },
+
+    { "accept": false, "what": "a value that is not a member of the enum", "set": { "Channel": "N'Telex'" } },
+    { "accept": false, "what": "an enum member differing only in case, which is not the name the model declares",
+      "set": { "Channel": "N'WEB'" } },
+
+    { "accept": false, "what": "an in-row invariant that two fields break", "set": { "SettleIn": "N'NOK'" } },
+    { "accept": false, "what": "an invariant whose operand is absent, which 7K calls a violation and SQL would call unknown",
+      "drop": ["BillToCountry"] },
+
+    { "accept": false, "what": "a required envelope field left absent", "drop": ["CorrelationId"] },
+    { "accept": false, "what": "a required body field left absent", "drop": ["OrderId"] },
+    { "accept": false, "what": "the same message id twice", "set": {} , "twice": true }
+  ],
+  "statements": [
+    { "accept": true, "what": "an element of a list, keyed by its parent and its position",
+      "sql": "INSERT INTO [Shop].[PlaceOrderLines] ([MessageId],[Ordinal],[Sku],[Qty],[UnitValue],[UnitCurrency]) VALUES ('11111111-1111-1111-1111-111111111111',0,N'SKU-1',2,6.25,N'SEK')" },
+    { "accept": false, "what": "a list element whose parent does not exist",
+      "sql": "INSERT INTO [Shop].[PlaceOrderLines] ([MessageId],[Ordinal],[Sku],[Qty],[UnitValue],[UnitCurrency]) VALUES ('99999999-9999-9999-9999-999999999999',0,N'SKU-1',2,6.25,N'SEK')" },
+    { "accept": false, "what": "two list elements at the same position, because a list is ordered",
+      "sql": "INSERT INTO [Shop].[PlaceOrderLines] ([MessageId],[Ordinal],[Sku],[Qty],[UnitValue],[UnitCurrency]) VALUES ('11111111-1111-1111-1111-111111111111',0,N'SKU-2',1,1.00,N'SEK')" },
+    { "accept": false, "what": "a rule on a list element, which is checked on the child table",
+      "sql": "INSERT INTO [Shop].[PlaceOrderLines] ([MessageId],[Ordinal],[Sku],[Qty],[UnitValue],[UnitCurrency]) VALUES ('11111111-1111-1111-1111-111111111111',9,N'SKU-1',0,6.25,N'SEK')" },
+
+    { "accept": true, "what": "two tags that differ",
+      "sql": "INSERT INTO [Shop].[PlaceOrderTags] ([MessageId],[Ordinal],[Value]) VALUES ('11111111-1111-1111-1111-111111111111',0,N'red'),('11111111-1111-1111-1111-111111111111',1,N'blue')" },
+    { "accept": false, "what": "a repeated tag, because the model declares the list `unique`",
+      "sql": "INSERT INTO [Shop].[PlaceOrderTags] ([MessageId],[Ordinal],[Value]) VALUES ('11111111-1111-1111-1111-111111111111',2,N'red')" },
+    { "accept": true, "what": "two tags differing only in case, which 7K calls distinct",
+      "sql": "INSERT INTO [Shop].[PlaceOrderTags] ([MessageId],[Ordinal],[Value]) VALUES ('11111111-1111-1111-1111-111111111111',3,N'RED')" },
+
+    { "accept": true, "what": "a map entry, keyed by its key and not by a position",
+      "sql": "INSERT INTO [Shop].[PlaceOrderRates] ([MessageId],[Key],[Value]) VALUES ('11111111-1111-1111-1111-111111111111',N'NOK',1.05)" },
+    { "accept": false, "what": "the same map key twice",
+      "sql": "INSERT INTO [Shop].[PlaceOrderRates] ([MessageId],[Key],[Value]) VALUES ('11111111-1111-1111-1111-111111111111',N'NOK',1.10)" },
+
+    { "accept": true, "what": "a row of a later version without the field that version added",
+      "sql": "INSERT INTO [Shop].[OrderSettled] ([MessageId],[SentAt],[MessageVersion],[CorrelationId],[Priority],[TenantId],[OrderId]) VALUES (NEWID(),'2026-10-05T12:00:00',N'1.0',NEWID(),1,N'acme',NEWID())" },
+
+    { "accept": false, "what": "orphaning a list element, which the cascade prevents",
+      "sql": "UPDATE [Shop].[PlaceOrderLines] SET [MessageId] = '99999999-9999-9999-9999-999999999999' WHERE [Ordinal] = 0" }
+  ]
+}

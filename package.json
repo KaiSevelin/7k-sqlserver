@@ -1,0 +1,27 @@
+{
+  "name": "@sevenk/sqlserver",
+  "version": "0.1.0",
+  "description": "A SQL Server provider for the 7K modelling language: tables for the data a model declares",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": "./src/index.ts" },
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc --build",
+    "test": "vitest run",
+    "typecheck": "tsc --build --force",
+    "verify": "tsx scripts/verify.mjs"
+  },
+  "dependencies": {
+    "@sevenk/core": "file:../7K/packages/core",
+    "@sevenk/generate": "file:../7K/packages/generate"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.11"
+  }
+}

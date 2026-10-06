@@ -215,6 +215,14 @@ export const sqlserver: Provider = {
   name: "sqlserver",
   target: "SQL Server 2016+ (T-SQL)",
   layouts: ["per-declaration", "per-package", "single"],
+  /**
+   * The Data layer, and only it. A `message` becomes a table and a `record` becomes one when
+   * `records` is on; everything else a model declares is either reached through those two — a `value`
+   * becomes a column type and its constraints — or has no honest reading as a table at all. A pipe's
+   * guarantee is not a table and a saga is not a constraint, which is what section 1 of the README
+   * means by refusing rather than approximating.
+   */
+  emits: ["message", "record"],
   options: OPTIONS,
 
   generate(request: Request): Generated {

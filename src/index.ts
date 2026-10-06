@@ -27,7 +27,7 @@
  */
 
 import type { Decl, MessageIr, RecordIr } from "@sevenk/core";
-import type { Artifact, Generated, Loss, OptionSpec, Provider, Refusal, Request } from "@sevenk/generate";
+import type { Artifact, Generated, Loss, OptionSpec, Provider, Refusal, Request } from "@sevenk/provider";
 import { bracket, cased, constraintName, qnameOf, schemaFor, tableRef, type Casing } from "./naming.js";
 import { tablesFor, type Table } from "./tables.js";
 import type { Context, TypeProblem } from "./types.js";

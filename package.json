@@ -6,8 +6,12 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": "./src/index.ts" },
-  "engines": { "node": ">=20" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc --build",
     "test": "vitest run",
@@ -16,9 +20,10 @@
   },
   "dependencies": {
     "@sevenk/core": "file:../7K/packages/core",
-    "@sevenk/generate": "file:../7K/packages/generate"
+    "@sevenk/provider": "file:../7K/packages/provider"
   },
   "devDependencies": {
+    "@sevenk/generate": "file:../7K/packages/generate",
     "@types/node": "^22.10.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",

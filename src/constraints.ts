@@ -18,7 +18,7 @@
  */
 
 import type { ConstraintIr, Decl, FieldIr, Operand, Predicate, TypeIr } from "@sevenk/core";
-import type { Loss } from "@sevenk/generate";
+import type { Loss } from "@sevenk/provider";
 import { bracket } from "./naming.js";
 import { declOf, isCollection, type Context } from "./types.js";
 

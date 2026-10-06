@@ -22,7 +22,7 @@
  */
 
 import type { Decl, FieldIr, MessageIr, Predicate, RecordIr } from "@sevenk/core";
-import type { Loss } from "@sevenk/generate";
+import type { Loss } from "@sevenk/provider";
 import {
   bracket,
   childName,

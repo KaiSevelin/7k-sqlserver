@@ -223,6 +223,87 @@ export const sqlserver: Provider = {
    * means by refusing rather than approximating.
    */
   emits: ["message", "record"],
+  /**
+   * What a schema can hold of a contract, and what it cannot.
+   *
+   * Worth reading before a model is committed to this target, because three of these change how you
+   * would design it: a list's element count is unreachable, a regex is unexpressible, and text
+   * comparison belongs to the database rather than to 7K. None of that is a bug to be fixed later —
+   * a `CHECK` is a predicate over one row's columns, and the constructs below are the ones that are
+   * not that.
+   */
+  covers: [
+    {
+      construct: "range",
+      fidelity: "full",
+      note: "A `CHECK` over the column. Listed because the rest of this table is gaps.",
+    },
+    { construct: "multipleOf", fidelity: "full" },
+    {
+      construct: "unique",
+      fidelity: "full",
+      note:
+        "A `UNIQUE` over (parent, value) on the child table — a list is rows here, and this is the " +
+        "one list constraint that survives being rows.",
+    },
+    {
+      construct: "length",
+      fidelity: "partial",
+      note:
+        "On a scalar it is a `CHECK` over `LEN`. On a list it bounds how many elements there are, " +
+        "and they are rows in a child table — a count no declarative constraint reaches.",
+    },
+    {
+      construct: "size",
+      fidelity: "none",
+      note:
+        "Always about a collection, which is always a child table, so there is nothing to count in " +
+        "a row-level `CHECK`. Enforce it in the producer.",
+    },
+    {
+      construct: "pattern",
+      fidelity: "none",
+      note:
+        "SQL Server has no regular expression operator, and a `LIKE` that catches most of what a " +
+        "regex would is the near-miss that gets trusted. A value this rejects can be written.",
+    },
+    {
+      construct: "normalize",
+      fidelity: "none",
+      note:
+        "It transforms a value and a `CHECK` is a predicate, so an unnormalised value is accepted " +
+        "here where 7K would have rewritten it. Normalise before writing.",
+    },
+    {
+      construct: "invariant",
+      fidelity: "partial",
+      note:
+        "A comparison between columns of one table becomes a `CHECK`. One reaching into a list, " +
+        "across tables, or into the envelope does not.",
+    },
+    {
+      construct: "nominal value",
+      fidelity: "partial",
+      note:
+        "Its constraints travel to the column; its name does not. SQL Server has no domain, so two " +
+        "columns of the same base type are interchangeable where 7K would not have allowed it.",
+    },
+    {
+      construct: "string equality",
+      fidelity: "partial",
+      note:
+        "Text takes the database's collation, and 7K compares exactly. Under a case- or " +
+        "accent-insensitive collation an enum accepts an undeclared member and `unique` calls two " +
+        "distinct elements duplicates. Set the `collation` option to close this.",
+    },
+    {
+      construct: "decimal",
+      fidelity: "none",
+      note:
+        "Refused rather than narrowed past 38 digits of precision, which is all SQL Server's " +
+        "`DECIMAL` holds. Below that it is exact.",
+    },
+  ],
   options: OPTIONS,
 
   generate(request: Request): Generated {

@@ -24,6 +24,16 @@ Those are refused rather than approximated.
 Types are chosen to not lose: `BIGINT` for `int`, `NVARCHAR` at the declared length, `DATETIME2(6)` for
 `instant`, `BIGINT` milliseconds for `duration`, `DECIMAL(p,s)` exactly as declared.
 
+## What it can express
+
+Every construct this provider handles better or worse than exactly is declared in `covers`, in
+`src/index.ts`, with a note saying what becomes of it and what to do instead. Spider shows the list
+in the provider's settings, worst first.
+
+Declared rather than written out here, because a second copy is a copy that drifts — and this one is
+checked: `test/coverage.test.ts` runs the declaration against the losses this provider reports over
+the `verify/model` fixture, so claiming to hold something it then gives up fails the suite.
+
 ## Two things SQL gets wrong by default
 
 **An absent operand.** 7K says a comparison with an absent operand is **false** — "absent differs from
